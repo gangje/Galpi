@@ -1,0 +1,22 @@
+# Python (PoC)
+poc/.venv/
+__pycache__/
+*.pyc
+.galpi_index/
+
+# 모델 파일 (용량 큼 — 스크립트로 재생성)
+poc/models/
+*.onnx
+
+# Android
+app/.gradle/
+app/build/
+app/*/build/
+app/local.properties
+app/.idea/
+*.keystore
+*.jks
+
+# OS
+Thumbs.db
+.DS_Store
