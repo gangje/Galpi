@@ -22,7 +22,7 @@ from PIL import Image
 
 from galpi_poc.models import image_model, text_model
 
-OPSET = 17
+OPSET = 18
 
 
 class ImageEncoder(torch.nn.Module):
@@ -55,6 +55,7 @@ class TextEncoder(torch.nn.Module):
 
 
 def export_and_quantize(module, args, input_names, dynamic_axes, out_base: Path) -> Path:
+    import onnx
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
     fp32 = out_base.with_suffix(".onnx")
@@ -67,8 +68,19 @@ def export_and_quantize(module, args, input_names, dynamic_axes, out_base: Path)
         output_names=["embedding"],
         dynamic_axes=dynamic_axes,
         opset_version=OPSET,
+        dynamo=False,  # dynamo 익스포터는 양자화기와 호환 문제(이름 중복/타입 추론 실패)가 있어 구형 사용
     )
-    quantize_dynamic(str(fp32), str(int8), weight_type=QuantType.QUInt8)
+    # 익스포터가 남긴 중간 value_info가 양자화기의 shape 추론과 충돌할 수 있어 제거
+    model = onnx.load(str(fp32))
+    del model.graph.value_info[:]
+    onnx.save(model, str(fp32))
+    quantize_dynamic(
+        str(fp32),
+        str(int8),
+        weight_type=QuantType.QUInt8,
+        # dynamo 익스포터 그래프는 일부 중간 텐서의 타입 추론이 안 되므로 기본 타입 지정
+        extra_options={"DefaultTensorType": onnx.TensorProto.FLOAT},
+    )
     print(
         f"{out_base.name}: fp32 {fp32.stat().st_size / 1e6:.0f}MB -> "
         f"int8 {int8.stat().st_size / 1e6:.0f}MB"
