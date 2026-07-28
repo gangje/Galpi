@@ -25,8 +25,21 @@
 
 ```
 poc/    PC에서 모델·검색 품질을 검증하는 Python PoC
-app/    Android 앱 (Kotlin + Jetpack Compose) — 예정
+app/    Android 앱 (Kotlin + Jetpack Compose)
 ```
+
+## 앱 빌드 준비
+
+모델 파일(.onnx)은 용량 문제로 git에 포함되지 않는다. 빌드 전에 PoC로 생성해 assets에 복사:
+
+```
+cd poc
+.venv\Scripts\python export_onnx.py
+copy models\image_encoder.int8.onnx ..\app\app\src\main\assets\
+copy models\text_encoder.int8.onnx ..\app\app\src\main\assets\
+```
+
+(`vocab.txt`는 git에 포함되어 있음)
 
 ## PoC 사용법
 

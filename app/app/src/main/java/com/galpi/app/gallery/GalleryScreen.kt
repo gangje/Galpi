@@ -43,10 +43,12 @@ private fun requiredPermissions(): Array<String> = when {
         Manifest.permission.READ_MEDIA_IMAGES,
         Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED,
         Manifest.permission.ACCESS_MEDIA_LOCATION,
+        Manifest.permission.POST_NOTIFICATIONS,
     )
     Build.VERSION.SDK_INT >= 33 -> arrayOf(
         Manifest.permission.READ_MEDIA_IMAGES,
         Manifest.permission.ACCESS_MEDIA_LOCATION,
+        Manifest.permission.POST_NOTIFICATIONS,
     )
     else -> arrayOf(
         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -75,6 +77,7 @@ private fun currentAccess(context: Context): MediaAccess {
 fun GalleryScreen(viewModel: GalleryViewModel = viewModel()) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsState()
+    val indexedCount by viewModel.indexedCount.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -98,9 +101,32 @@ fun GalleryScreen(viewModel: GalleryViewModel = viewModel()) {
                     )
                 else -> PhotoGrid(
                     state = state,
+                    indexedCount = indexedCount,
                     onManageSelection = { permissionLauncher.launch(requiredPermissions()) },
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun IndexingBanner(indexed: Int, total: Int) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        if (indexed < total) {
+            Text(
+                text = stringResource(R.string.indexing_progress, indexed, total),
+                style = MaterialTheme.typography.bodySmall,
+            )
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { if (total == 0) 0f else indexed / total.toFloat() },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            )
+        } else {
+            Text(
+                text = stringResource(R.string.indexing_done),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -124,8 +150,13 @@ private fun PermissionRequest(onRequest: () -> Unit) {
 }
 
 @Composable
-private fun PhotoGrid(state: GalleryUiState, onManageSelection: () -> Unit) {
+private fun PhotoGrid(
+    state: GalleryUiState,
+    indexedCount: Int,
+    onManageSelection: () -> Unit,
+) {
     Column(Modifier.fillMaxSize()) {
+        IndexingBanner(indexed = indexedCount, total = state.photos.size)
         if (state.access == MediaAccess.PARTIAL) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                 Text(
