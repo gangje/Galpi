@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.galpi.app.data.GalpiDatabase
 import com.galpi.app.index.IndexingWorker
+import com.galpi.app.ml.ClipImageEncoder
 import com.galpi.app.ml.ClipTextEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -40,7 +41,17 @@ class SearchEngine(private val context: Context) {
             if (candidates.isEmpty()) return@withContext parsed to emptyList()
 
             val encoder = textEncoder ?: ClipTextEncoder(context).also { textEncoder = it }
-            val q = encoder.encode(parsed.visualText)
+            // 정렬이 약한 한국어 단어는 영어 치환본과 앙상블해 임베딩 품질을 보정
+            val q = run {
+                val ko = encoder.encode(parsed.visualText)
+                val en = QueryGloss.englishVariant(parsed.visualText)?.let(encoder::encode)
+                if (en == null) {
+                    ko
+                } else {
+                    val avg = FloatArray(ko.size) { (ko[it] + en[it]) / 2f }
+                    ClipImageEncoder.l2Normalize(avg)
+                }
+            }
 
             val scored = candidates.map { photo ->
                 val emb = IndexingWorker.toFloats(photo.embedding)
