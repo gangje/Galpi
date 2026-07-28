@@ -11,4 +11,9 @@
     <string name="indexing_notification">사진을 검색할 수 있게 준비하고 있어요</string>
     <string name="indexing_progress">검색 준비 중 %1$d / %2$d</string>
     <string name="indexing_done">모든 사진이 검색 준비됐어요</string>
+    <string name="search_hint">예: 작년 일본에서 먹은 돈까스</string>
+    <string name="search_no_results">관련 사진을 찾지 못했어요</string>
+    <string name="search_filters">필터: %1$s</string>
+    <string name="search_result_count">%1$d장 찾음</string>
+    <string name="clear_search">검색 지우기</string>
 </resources>

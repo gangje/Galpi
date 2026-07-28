@@ -1,4 +1,4 @@
-package com.galpi.app.gallery
+﻿package com.galpi.app.gallery
 
 import android.Manifest
 import android.content.Context
@@ -16,12 +16,22 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -102,11 +112,47 @@ fun GalleryScreen(viewModel: GalleryViewModel = viewModel()) {
                 else -> PhotoGrid(
                     state = state,
                     indexedCount = indexedCount,
+                    onQueryChanged = viewModel::onQueryChanged,
+                    onSearch = viewModel::search,
+                    onClearSearch = viewModel::clearSearch,
                     onManageSelection = { permissionLauncher.launch(requiredPermissions()) },
                 )
             }
         }
     }
+}
+
+@Composable
+private fun SearchBar(
+    query: String,
+    searching: Boolean,
+    onQueryChanged: (String) -> Unit,
+    onSearch: () -> Unit,
+    onClear: () -> Unit,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChanged,
+        placeholder = { Text(stringResource(R.string.search_hint)) },
+        singleLine = true,
+        trailingIcon = {
+            when {
+                searching -> CircularProgressIndicator(
+                    Modifier.padding(8.dp).aspectRatio(1f),
+                    strokeWidth = 2.dp,
+                )
+                query.isNotEmpty() -> IconButton(onClick = onClear) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = stringResource(R.string.clear_search),
+                    )
+                }
+            }
+        },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() }),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
@@ -117,7 +163,7 @@ private fun IndexingBanner(indexed: Int, total: Int) {
                 text = stringResource(R.string.indexing_progress, indexed, total),
                 style = MaterialTheme.typography.bodySmall,
             )
-            androidx.compose.material3.LinearProgressIndicator(
+            LinearProgressIndicator(
                 progress = { if (total == 0) 0f else indexed / total.toFloat() },
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             )
@@ -153,9 +199,19 @@ private fun PermissionRequest(onRequest: () -> Unit) {
 private fun PhotoGrid(
     state: GalleryUiState,
     indexedCount: Int,
+    onQueryChanged: (String) -> Unit,
+    onSearch: () -> Unit,
+    onClearSearch: () -> Unit,
     onManageSelection: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize()) {
+        SearchBar(
+            query = state.query,
+            searching = state.searching,
+            onQueryChanged = onQueryChanged,
+            onSearch = onSearch,
+            onClear = onClearSearch,
+        )
         IndexingBanner(indexed = indexedCount, total = state.photos.size)
         if (state.access == MediaAccess.PARTIAL) {
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
@@ -168,28 +224,76 @@ private fun PhotoGrid(
                 }
             }
         }
-        Text(
-            text = stringResource(R.string.photo_count, state.photos.size),
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-        )
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 104.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            items(state.photos, key = { it.id }) { photo ->
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(photo.uri)
-                        .crossfade(true)
-                        .size(256)
-                        .build(),
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.aspectRatio(1f),
-                )
+
+        val results = state.results
+        if (results != null) {
+            // 寃??寃곌낵 紐⑤뱶
+            Text(
+                text = if (state.matchedTerms.isEmpty()) {
+                    stringResource(R.string.search_result_count, results.size)
+                } else {
+                    stringResource(R.string.search_result_count, results.size) +
+                        "  쨌  " + stringResource(
+                            R.string.search_filters,
+                            state.matchedTerms.joinToString(", "),
+                        )
+                },
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            if (results.isEmpty()) {
+                Box(Modifier.fillMaxSize()) {
+                    Text(
+                        stringResource(R.string.search_no_results),
+                        Modifier.align(Alignment.Center),
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 104.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(results, key = { it.mediaId }) { result ->
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(result.uri)
+                                .crossfade(true)
+                                .size(256)
+                                .build(),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.aspectRatio(1f),
+                        )
+                    }
+                }
+            }
+        } else {
+            // ?꾩껜 媛ㅻ윭由?紐⑤뱶
+            Text(
+                text = stringResource(R.string.photo_count, state.photos.size),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 104.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                items(state.photos, key = { it.id }) { photo ->
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(photo.uri)
+                            .crossfade(true)
+                            .size(256)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.aspectRatio(1f),
+                    )
+                }
             }
         }
     }
