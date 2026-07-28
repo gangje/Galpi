@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">갈피</string>
+    <string name="permission_rationale">사진을 검색하려면 갤러리 접근 권한이 필요해요.\n모든 처리는 휴대폰 안에서만 이루어지고, 사진은 기기 밖으로 나가지 않습니다.</string>
+    <string name="grant_permission">사진 접근 허용</string>
+    <string name="partial_access_notice">일부 사진만 접근이 허용되어 있어요. 선택한 사진만 검색됩니다.</string>
+    <string name="manage_selection">사진 선택 변경</string>
+    <string name="no_photos">표시할 사진이 없습니다.</string>
+    <string name="photo_count">%1$d장의 사진</string>
+</resources>

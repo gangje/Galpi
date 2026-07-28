@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 갈피(책갈피) 모양 런처 아이콘 (Phase 4에서 adaptive icon으로 교체 예정) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#2D5B4F"
+        android:pathData="M4,2h16a1,1 0 0 1 1,1v18a1,1 0 0 1 -1,1H4a1,1 0 0 1 -1,-1V3a1,1 0 0 1 1,-1z" />
+    <path
+        android:fillColor="#F3B94D"
+        android:pathData="M14,2h5v13l-2.5,-2 -2.5,2z" />
+</vector>
